@@ -1,12 +1,12 @@
 import type { NextPage } from 'next'
 import Navigation from '../components/navigation'
 import Footer from '../components/footer'
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {toBase64} from '../components/encoding'
-import {createClient} from '@supabase/supabase-js'
+import { createClient, Session } from '@supabase/supabase-js'
+import Auth from "../components/auth"
 
-
-const CreateAlbum: NextPage = () => {
+const CreateAlbumComponent = () => {
     const [albumName, setAlbumName] = useState('')
     const [fileinfo, setFileinfo] = useState<FileList|null>(null)
     const onSubmitHanlder = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -29,7 +29,6 @@ const CreateAlbum: NextPage = () => {
             const filedata_b64 = filedata_datauri.substring(
                 filedata_datauri.indexOf("base64") + 7
             )
-            console.log(`File data: ${filedata_b64}`)
             await fetch(
                 `${process.env.NEXT_PUBLIC_KESTREL_WORKER_URL}/uploadfile`,
                 {
@@ -47,6 +46,48 @@ const CreateAlbum: NextPage = () => {
         }
         files.forEach(file => filehandler(file))
     }
+
+    return <div className="w-container">
+        <h1>Create Album</h1>
+        <div className="w-form">
+            <form
+                id="createalbum-form"
+                name="createalbum-form"
+                data-name="Create Album"
+                method="get"
+                onSubmit={onSubmitHanlder}
+            >
+                <label htmlFor="name">Album Name</label>
+                <input type="text"
+                       className="w-input"
+                       maxLength={256}
+                       name="name"
+                       data-name="Name"
+                       placeholder=""
+                       id="name"
+                       value={albumName}
+                       onChange={e=>setAlbumName(e.target.value)}
+                />
+                <label htmlFor="photos">Photos:</label>
+                <input
+                    type="file"
+                    id="photos"
+                    className="w-input"
+                    multiple={true}
+                    onChange={(e) => {setFileinfo(e.target.files)}}
+                />
+                <input type="submit" value="Submit" data-wait="Please wait..." className="w-button"/>
+            </form>
+        </div>
+    </div>
+}
+
+const CreateAlbum: NextPage = () => {
+    const [session, setSession] = useState<Session|null>(null)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    useEffect(() => setSession(supabase.auth.session()), [])
     return <>
         <meta charSet="utf-8" />
         <title>Kestrel Photos</title>
@@ -57,40 +98,8 @@ const CreateAlbum: NextPage = () => {
         <link href="css/kestrelphotos.webflow.css" rel="stylesheet" type="text/css" />
         <link href="images/favicon.ico" rel="shortcut icon" type="image/x-icon" />
         <link href="images/webclip.png" rel="apple-touch-icon" />
-        <Navigation/>
-        <div className="w-container">
-            <h1>Create Album</h1>
-            <div className="w-form">
-                <form
-                    id="createalbum-form"
-                    name="createalbum-form"
-                    data-name="Create Album"
-                    method="get"
-                    onSubmit={onSubmitHanlder}
-                >
-                    <label htmlFor="name">Album Name</label>
-                    <input type="text"
-                           className="w-input"
-                           maxLength={256}
-                           name="name"
-                           data-name="Name"
-                           placeholder=""
-                           id="name"
-                           value={albumName}
-                           onChange={e=>setAlbumName(e.target.value)}
-                    />
-                    <label htmlFor="photos">Photos:</label>
-                    <input
-                        type="file"
-                        id="photos"
-                        className="w-input"
-                        multiple={true}
-                        onChange={(e) => {setFileinfo(e.target.files)}}
-                    />
-                    <input type="submit" value="Submit" data-wait="Please wait..." className="w-button"/>
-                </form>
-            </div>
-        </div>
+        <Navigation session={session} setSession={setSession}/>
+        {!session ? <Auth setSession={setSession}/> : <CreateAlbumComponent/>}
         <Footer/>
     </>
 }
