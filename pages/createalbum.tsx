@@ -2,9 +2,11 @@ import type { NextPage } from 'next'
 import Navigation from '../components/navigation'
 import Footer from '../components/footer'
 import React, {useState, useEffect} from "react";
-import {toBase64} from '../components/encoding'
+import { fileToBase64, fromBase64, toBase64 } from '../components/encoding'
+import { decrypt, encrypt, getPrivKey } from '../utils/encrypt'
 import { createClient, Session } from '@supabase/supabase-js'
 import Auth from "../components/auth"
+import { checkSession } from '../utils/supabase'
 
 const CreateAlbumComponent = () => {
     const [albumName, setAlbumName] = useState('')
@@ -24,11 +26,29 @@ const CreateAlbumComponent = () => {
         if (error) {
             console.log(error)
         }
+        // await fetch(
+        //     `${process.env.NEXT_PUBLIC_KESTREL_WORKER_URL}/adduserdata`,
+        //     {
+        //         headers: {"Content-TYpe": 'application/json'},
+        //         method: 'POST',
+        //         body: JSON.stringify({
+        //             jwt: client.auth.session()?.access_token,
+        //             userid: client.auth.session()?.user?.id,
+        //             appid: 1,
+        //             data: {albumname: albumName}
+        //         })
+        //     }
+        // )
         const filehandler = async (file: File) => {
-            const filedata_datauri: string = await toBase64(file)
+            const filedata_datauri: string = await fileToBase64(file)
             const filedata_b64 = filedata_datauri.substring(
                 filedata_datauri.indexOf("base64") + 7
             )
+            const filedata = fromBase64(filedata_b64)
+            const key = await getPrivKey("default")
+            const encrypted = await encrypt(filedata, key)
+            const encrypted_b64 = Buffer.from(encrypted.data).toString('base64')
+            const iv_b64 = toBase64(encrypted.iv)
             await fetch(
                 `${process.env.NEXT_PUBLIC_KESTREL_WORKER_URL}/uploadfile`,
                 {
@@ -37,12 +57,25 @@ const CreateAlbumComponent = () => {
                     body: JSON.stringify({
                         jwt: client.auth.session()?.access_token,
                         userid: client.auth.user()?.id,
-                        appid: "myapp",
+                        appid: 1,
                         path: "my/path",
-                        filedata_b64: filedata_b64
+                        filedata_b64: encrypted_b64
                     })
                 }
-            ).then(() => alert("File uploaded: "))
+            )
+            await fetch(
+                `${process.env.NEXT_PUBLIC_KESTREL_WORKER_URL}/adduserdata`,
+                {
+                    headers: {'Content-Type': 'application/json'},
+                    method: 'POST',
+                    body: JSON.stringify({
+                        jwt: client.auth.session()?.access_token,
+                        userid: client.auth.session()?.user?.id,
+                        appid: 1,
+                        data: {albumName: albumName, url: "my/path", iv_b64: iv_b64}
+                    })
+                }
+            )
         }
         files.forEach(file => filehandler(file))
     }
@@ -84,10 +117,7 @@ const CreateAlbumComponent = () => {
 
 const CreateAlbum: NextPage = () => {
     const [session, setSession] = useState<Session|null>(null)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-    useEffect(() => setSession(supabase.auth.session()), [])
+    checkSession(setSession)
     return <>
         <meta charSet="utf-8" />
         <title>Kestrel Photos</title>
