@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
-import { supabase } from "../utils/supabase"
 import { decrypt, getPrivKey } from "../utils/encrypt"
 import { fromBase64, toBase64 } from "../utils/encoding"
 import { Album, UserData } from "../utils/types/albums"
+import { queryUserData, retrieveFile } from '../utils/kestrel'
 
 export type DecryptedAlbumData = {
     udataid: number
@@ -14,31 +14,19 @@ export type DecryptedAlbumData = {
 const AlbumList = () => {
     const [albumList, setAlbumList] = useState<DecryptedAlbumData[]>([])
     const updateAlbumList = async () => {
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_KESTREL_WORKER_URL}/queryuserdata`,
-            {
-                headers: { "Content-Type": "application/json" },
-                method: "POST",
-                body: JSON.stringify({
-                    jwt: supabase.auth.session()?.access_token,
-                    userid: supabase.auth.user()?.id,
-                    appid: 1,
-                    column: "data->>dataType",
-                    operator: "eq",
-                    value: "Album",
-                }),
-            }
-        )
-        const data = await response.json()
-        const results: UserData<Album>[] = data.results
+        const results = await queryUserData<Album>([{
+            column: "data->>dataType",
+            operator: "eq",
+            value: "Album"
+        }])
         console.log(JSON.stringify(results))
         const decrypted = await Promise.all(
             results.map(async (udata) => {
                 const decrypted_datauri = await generateDataUri(udata)
                 return {
                     udataid: udata.udataid,
-                    albumName: udata.data.data.albumName,
-                    albumId: udata.data.data.albumId,
+                    albumName: udata.data.value.albumName,
+                    albumId: udata.data.value.albumId,
                     decrypted_datauri: decrypted_datauri,
                 }
             })
@@ -46,21 +34,8 @@ const AlbumList = () => {
         setAlbumList(decrypted)
     }
     async function generateDataUri(album: UserData<Album>) {
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_KESTREL_WORKER_URL}/getfile`,
-            {
-                headers: { "Content-Type": "application/json" },
-                method: "POST",
-                body: JSON.stringify({
-                    jwt: supabase.auth.session()?.access_token,
-                    userid: supabase.auth.user()?.id,
-                    appid: 1,
-                    path: album.data.data.coverPath,
-                }),
-            }
-        )
-        const encrypted = await response.arrayBuffer()
-        const iv = fromBase64(album.data.data.iv_b64)
+        const encrypted = await retrieveFile(album.data.value.coverPath)
+        const iv = fromBase64(album.data.value.iv_b64)
         const privkey = await getPrivKey("default")
         const decrypted = await decrypt({ data: encrypted, iv: iv }, privkey)
         return `data:image/jpeg;base64,${toBase64(decrypted)}`

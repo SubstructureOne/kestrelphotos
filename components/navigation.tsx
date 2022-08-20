@@ -25,7 +25,7 @@ const Navigation: FunctionComponent<NavigationProps> = ({
                 aria-current="page"
                 className="brand-link w-nav-brand w--current"
             >
-                <h1 className="brand-text">NEWPORT</h1>
+                <h1 className="brand-text">Kestrel Photos</h1>
             </a>
             <nav role="navigation" className="navigation-menu w-nav-menu">
                 <a
@@ -33,14 +33,17 @@ const Navigation: FunctionComponent<NavigationProps> = ({
                     aria-current="page"
                     className="navigation-link w-nav-link w--current"
                 >
-                    Gallery
+                    Album List
                 </a>
-                <a href="blog.html" className="navigation-link w-nav-link">
-                    Blog
+                <a href="/createalbum" className="navigation-link w-nav-link">
+                    New Album
                 </a>
-                <a href="about.html" className="navigation-link w-nav-link">
-                    About
-                </a>
+                {/*<a href="/" className="navigation-link w-nav-link">*/}
+                {/*    Albums*/}
+                {/*</a>*/}
+                {/*<a href="about.html" className="navigation-link w-nav-link">*/}
+                {/*    About*/}
+                {/*</a>*/}
                 {session
                     ?
                     <LogoutButton setSession={setSession}/>

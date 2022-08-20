@@ -12,7 +12,7 @@ export type UserData<T> = {
 
 export type KPhotoData<T> = {
     dataType: string
-    data: T
+    value: T
 }
 
 export type AlbumImage = {

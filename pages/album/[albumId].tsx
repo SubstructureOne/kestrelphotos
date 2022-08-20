@@ -6,10 +6,11 @@ import { Headers } from '../../components/headers'
 import Footer from '../../components/footer'
 import Navigation from '../../components/navigation'
 
-import { checkSession, supabase } from '../../utils/supabase'
-import { AlbumImage, UserData } from '../../utils/types/albums'
+import { checkSession } from '../../utils/supabase'
+import { Album, AlbumImage } from '../../utils/types/albums'
 import { fromBase64, toBase64 } from '../../utils/encoding'
 import { decrypt, getPrivKey } from '../../utils/encrypt'
+import { queryUserData, retrieveFile } from '../../utils/kestrel'
 
 
 export type DecryptedImageData = {
@@ -21,28 +22,31 @@ const AlbumImages = () => {
     const [session, setSession] = useState<Session|null>(null)
     checkSession(setSession)
     const [imageList, setImageList] = useState<DecryptedImageData[]>([]);
+    const [albumName, setAlbumName] = useState('')
     const router = useRouter();
+    const updateAlbumName = async () => {
+        if (!router.isReady) return
+        const userdata = await queryUserData<Album>([{
+            column: "data->>dataType",
+            operator: "eq",
+            value: "Album",
+        }])
+        const albums = userdata.map(ud => ud.data.value)
+        const filtered = albums.filter(album => album.albumId == router.query.albumId)
+        if (filtered.length > 0) {
+            setAlbumName(filtered[0].albumName)
+        }
+    }
     const updateImageList = async () => {
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_KESTREL_WORKER_URL}/queryuserdata`,
-            {
-                headers: { "Content-Type": "application/json" },
-                method: "POST",
-                body: JSON.stringify({
-                    jwt: supabase.auth.session()?.access_token,
-                    userid: supabase.auth.user()?.id,
-                    appid: process.env.NEXT_PUBLIC_KESTREL_APPID,
-                    // FIXME: need to filter by album ID here
-                    column: "data->>dataType",
-                    operator: "eq",
-                    value: "AlbumImage",
-                }),
-            }
-        );
-        const data = await response.json();
-        console.log(`${JSON.stringify(router.query.albumId)}: ${JSON.stringify(data)}`)
-        const userdata: UserData<AlbumImage>[] = data.results
-        const images = userdata.map(ud => ud.data.data)
+        if (!router.isReady) return
+        // FIXME: need to filter by album ID here
+        const userdata = await queryUserData<AlbumImage>([{
+            column: "data->>dataType",
+            operator: "eq",
+            value: "AlbumImage",
+        }])
+        const images = userdata.map(ud => ud.data.value)
+        console.log(`Filtering ${JSON.stringify(images)} on albumId == ${router.query.albumId}`)
         const filtered = images.filter(img => img.albumId == router.query.albumId)
         const decrypted = await Promise.all(
             filtered.map(async (image) => {
@@ -58,43 +62,37 @@ const AlbumImages = () => {
     }
 
     async function generateDataUri(image: AlbumImage) {
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_KESTREL_WORKER_URL}/getfile`,
-            {
-                headers: { "Content-Type": "application/json" },
-                method: "POST",
-                body: JSON.stringify({
-                    jwt: supabase.auth.session()?.access_token,
-                    userid: supabase.auth.user()?.id,
-                    appid: process.env.NEXT_PUBLIC_KESTREL_APPID,
-                    path: image.photoPath,
-                }),
-            }
-        );
-        const encrypted = await response.arrayBuffer();
+        const encrypted = await retrieveFile(image.photoPath)
         const iv = fromBase64(image.iv_b64);
         const privkey = await getPrivKey("default");
         const decrypted = await decrypt({ data: encrypted, iv: iv }, privkey);
         return `data:image/jpeg;base64,${toBase64(decrypted)}`;
     }
-    useEffect(() => {
-        updateImageList().catch(console.error)
-    }, [])
+    useEffect(() => {updateImageList().catch(console.error)}, [router.isReady])
+    useEffect(() => {updateAlbumName().catch(console.error)}, [router.isReady])
     return <>
-        <Headers title="View Album"/>
+        <Headers title={`View Album: ${albumName}`}/>
         <Navigation session={session} setSession={setSession}/>
-        <div role="list" className="w-dyn-items w-row">
-            {imageList.map((album) => (
-                <div
-                    role="listitem"
-                    className="w-dyn-item w-col w-col-4"
-                    key={album.imageId}
-                >
-                    <a href="#" className="photo-link-block w-inline-block">
-                        <img src={album.decrypted_datauri} alt="" />
-                    </a>
+        <div className="section wf-section">
+            <div className="w-container">
+                {/*<h1>{albumName}</h1>*/}
+                <div className="photo-page-title center">{albumName}</div>
+                <div className="w-dyn-list">
+                    <div role="list" className="w-dyn-items w-row">
+                        {imageList.map((album) => (
+                            <div
+                                role="listitem"
+                                className="w-dyn-item w-col w-col-4"
+                                key={album.imageId}
+                            >
+                                <a href="#" className="photo-link-block w-inline-block">
+                                    <img src={album.decrypted_datauri} alt="" />
+                                </a>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            ))}
+            </div>
         </div>
         <Footer/>
     </>
