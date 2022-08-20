@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import {useRouter} from "next/router";
 import { Session } from '@supabase/supabase-js'
+import Zoom from 'react-medium-image-zoom'
+import 'react-medium-image-zoom/dist/styles.css'
 
 import { Headers } from '../../components/headers'
 import Footer from '../../components/footer'
@@ -86,7 +88,9 @@ const AlbumImages = () => {
                                 key={album.imageId}
                             >
                                 <a href="#" className="photo-link-block w-inline-block">
-                                    <img src={album.decrypted_datauri} alt="" />
+                                    <Zoom>
+                                        <img src={album.decrypted_datauri} alt="" />
+                                    </Zoom>
                                 </a>
                             </div>
                         ))}
