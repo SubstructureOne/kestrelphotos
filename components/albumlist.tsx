@@ -51,7 +51,7 @@ const AlbumList = () => {
                     className="w-dyn-item w-col w-col-4"
                     key={album.udataid}
                 >
-                    <a href={`album/${album.albumId}`} className="photo-link-block w-inline-block">
+                    <a href={`album/viewalbum?albumId=${album.albumId}`} className="photo-link-block w-inline-block">
                         <img src={album.decrypted_datauri} alt="" />
                         <div className="title">{album.albumName}</div>
                     </a>
