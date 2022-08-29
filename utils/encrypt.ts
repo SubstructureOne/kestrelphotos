@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie'
+import { toBase64 } from './encoding'
 
 export type KeysEntry = {
     name: string,
@@ -35,6 +36,20 @@ export async function getPrivKey(name: string): Promise<CryptoKey> {
         return results.key
     }
 }
+
+export async function getKeyNames(): Promise<string[]> {
+    const allKeys = await db.keys.toArray()
+    return allKeys.map(entry => entry.name)
+}
+
+
+export async function exportKey(name: string): Promise<string> {
+    const key = await getPrivKey(name)
+    const keyBytes = await window.crypto.subtle.exportKey("raw", key)
+    console.log(`Bytes: ${keyBytes.byteLength}`)
+    return toBase64(keyBytes)
+}
+
 
 export async function generatePrivKey(): Promise<CryptoKey> {
     return await window.crypto.subtle.generateKey(

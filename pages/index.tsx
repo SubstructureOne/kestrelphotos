@@ -9,8 +9,7 @@ import { Headers } from '../components/headers'
 import Auth from '../components/auth'
 
 const Home: NextPage = () => {
-    const [session, setSession] = useState<Session|null>(null)
-    checkSession(setSession)
+    const [session, setSession] = checkSession()
     return <>
         <Headers title="Kestrel Photos"/>
         <Navigation session={session} setSession={setSession}/>

@@ -77,6 +77,10 @@ blockquote {
   line-height: 22px;
 }
 
+td {
+    padding: 5px;
+}
+
 .navigation-link {
   padding-top: 7px;
   padding-bottom: 7px;

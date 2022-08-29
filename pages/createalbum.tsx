@@ -102,8 +102,7 @@ const CreateAlbumComponent = () => {
 }
 
 const CreateAlbum: NextPage = () => {
-    const [session, setSession] = useState<Session|null>(null)
-    checkSession(setSession)
+    const [session, setSession] = checkSession()
     return <>
         <Headers title="Create Album"/>
         <Navigation session={session} setSession={setSession}/>

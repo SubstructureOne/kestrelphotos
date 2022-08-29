@@ -38,6 +38,9 @@ const Navigation: FunctionComponent<NavigationProps> = ({
                 <a href="/createalbum" className="navigation-link w-nav-link">
                     New Album
                 </a>
+                <a href="/managekeys" className="navigation-link w-nav-link">
+                    Manage Keys
+                </a>
                 {/*<a href="/" className="navigation-link w-nav-link">*/}
                 {/*    Albums*/}
                 {/*</a>*/}

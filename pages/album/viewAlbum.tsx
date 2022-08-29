@@ -21,8 +21,7 @@ export type DecryptedImageData = {
 }
 
 const AlbumImages = () => {
-    const [session, setSession] = useState<Session|null>(null)
-    checkSession(setSession)
+    const [session, setSession] = checkSession()
     const [imageList, setImageList] = useState<DecryptedImageData[]>([]);
     const [albumName, setAlbumName] = useState('')
     const router = useRouter();
