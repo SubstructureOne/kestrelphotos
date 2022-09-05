@@ -5,11 +5,13 @@ import { Session } from '@supabase/supabase-js'
 
 type LogoutProperties = {
     setSession: Dispatch<SetStateAction<Session|null>>
+    hamburger: boolean
 }
 
-export const LogoutButton: FunctionComponent<LogoutProperties> = ({setSession}) => {
+export const LogoutButton: FunctionComponent<LogoutProperties> = ({setSession, hamburger}) => {
+    const className = hamburger ? "navigation-link w-nav-link bm-item" : "navigation-link w-nav-link"
     return <a
-        className="navigation-link w-nav-link"
+        className={className}
         onClick={async e=>{
             console.log("Signing out")
             await supabase.auth.signOut()
