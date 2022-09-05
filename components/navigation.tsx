@@ -64,7 +64,13 @@ const Navigation: FunctionComponent<NavigationProps> = ({
                             ?
                             <LogoutButton setSession={setSession} hamburger={true}/>
                             :
-                            <a href="#" className="navigation-link w-nav-link">Login</a>
+                            <a
+                                href="#"
+                                className="navigation-link w-nav-link bm-item"
+                                style={{display: "block"}}
+                            >
+                                Login
+                            </a>
                         }
                     </Menu>
                 {/*</div>*/}
