@@ -27,11 +27,13 @@ const AlbumImages = () => {
     const router = useRouter();
     const updateAlbumName = async () => {
         if (!router.isReady) return
-        const userdata = await queryUserData<Album>([{
-            column: "data->>dataType",
-            operator: "eq",
-            value: "Album",
-        }])
+        const userdata = await queryUserData<Album>([
+            {
+                column: "data->>dataType",
+                operator: "eq",
+                value: "Album",
+            },
+        ])
         const albums = userdata.map(ud => ud.data.value)
         const filtered = albums.filter(album => album.albumId == router.query.albumId)
         if (filtered.length > 0) {
@@ -39,13 +41,20 @@ const AlbumImages = () => {
         }
     }
     const updateImageList = async () => {
-        if (!router.isReady) return
-        // FIXME: need to filter by album ID here
-        const userdata = await queryUserData<AlbumImage>([{
-            column: "data->>dataType",
-            operator: "eq",
-            value: "AlbumImage",
-        }])
+        if (!router.isReady || !router.query.albumId || Array.isArray(router.query.albumId))
+            return
+        const userdata = await queryUserData<AlbumImage>([
+            {
+                column: "data->>dataType",
+                operator: "eq",
+                value: "AlbumImage",
+            },
+            {
+                column: "data#>>'{value,albumId}",
+                operator: "eq",
+                value: router.query.albumId,
+            }
+        ])
         const images = userdata.map(ud => ud.data.value)
         console.log(`Filtering ${JSON.stringify(images)} on albumId == ${router.query.albumId}`)
         const filtered = images.filter(img => img.albumId == router.query.albumId)
